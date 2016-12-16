@@ -103,15 +103,15 @@ subroutine parameters_set
 	! Domain width
 	dw = 1.0_DP
 	! Cells across the width
-	nx = 32
+	nx = 50
 	! Domain height
 	dh = 1.0_DP
 	! Cells across the height
-	ny = 32
+	ny = 50
 	! Lid velocity
 	Ulid = 1.0_DP
 	! Density of fluid
-	rho = 2500.0_DP
+	rho = 100.0_DP
 	! Dynamic viscosity of fluid
 	mu = 1.0_DP
 	
@@ -121,7 +121,7 @@ subroutine parameters_set
 	! Initial time step size
 	init_CFL = 0.5_DP !85% initial CFL
 	! End time of simulation
-	tfin = 1000.0_DP
+	tfin = 50.0_DP
 	! Time in between data dumps
 	write_freq = 10.0_DP
 	! File name used for data written to file

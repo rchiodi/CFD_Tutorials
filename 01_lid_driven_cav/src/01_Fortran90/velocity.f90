@@ -197,7 +197,6 @@ subroutine velocity_correct
 	use operators
 	use indices
 	use time_info
-	use pressure
 	implicit none
 	
 	integer :: i,j
@@ -218,15 +217,6 @@ subroutine velocity_correct
 															 P(i,j-1+grad_m:j-1+grad_p))
 		end do
 	end do
-	
-	
-	!call pressure_RHS
-	!	do j = jmin, jmax
-	!	do i = imin, imax
-	!	print*,'RHS', i,j,RHS(i,j)
-	!	end do
-	!	end do
-	
 	
 	return
 end subroutine velocity_correct
