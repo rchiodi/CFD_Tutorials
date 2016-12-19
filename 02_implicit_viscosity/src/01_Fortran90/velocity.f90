@@ -19,12 +19,13 @@ subroutine velocity_solve
 	Vold = V
 	
 	! Advance velocity in time
-	call velocity_solver_conv_u
+
 	!call velocity_solver_visc_u_explicit
 	call velocity_solver_visc_u_implicit
-	call velocity_solver_conv_v
+	call velocity_solver_conv_u
 	!call velocity_solver_visc_v_explicit
 	call velocity_solver_visc_v_implicit
+	call velocity_solver_conv_v
 		
 	return
 end subroutine velocity_solve
@@ -59,7 +60,7 @@ subroutine velocity_solver_conv_u
 	! to n+1/2. U(imin,:) is on the boundary and will be set with a BC
 	do j = jmin,jmax
 		do i = imin+1,imax
-			U(i,j) = Uold(i,j)+dt*(&
+			U(i,j) = U(i,j)+dt*(&
 												 sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
 												 sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
 																																	 )
@@ -101,7 +102,7 @@ subroutine velocity_solver_visc_u_explicit
 	! with a BC
 	do j = jmin,jmax
 		do i = imin+1,imax
-			U(i,j) = U(i,j)+dt*(&
+			U(i,j) = Uold(i,j)+dt*(&
 							  	sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
 					 			  sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
 																														)
@@ -149,32 +150,32 @@ subroutine velocity_solver_visc_u_implicit
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= U(i,j)
+				RHS(ind)= Uold(i,j)
 			else if(i.eq.imax+1) then ! Dirichlet BC
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= U(i,j)
+				RHS(ind)= Uold(i,j)
 			else if(j.eq.jmin-1) then ! Dirichlet BC
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= U(i,j)
+				RHS(ind)= Uold(i,j)
 			else if(j.eq.jmax+1) then ! Dirichlet BC
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= U(i,j)
+				RHS(ind)= Uold(i,j)
 			else
 				ld(ind) = -coeff*cnt_divx(0,i,j)*cnt_gradx(0,i-1,j)
 				md(ind) =  1.0_DP-coeff*(cnt_divx(0,i,j)*&
 									 cnt_gradx(1,i-1,j)+cnt_divx(1,i,j)*cnt_gradx(0,i,j))
 				ud(ind) = -coeff*cnt_divx(1,i,j)*cnt_gradx(1,i,j)
 				RHS(ind)=  coeff*(cnt_divy(0,i,j)*&
-									 sum(cnt_grady(:,i,j-1)*U(i,j-1+grad_m:j-1+grad_p)) &
+									 sum(cnt_grady(:,i,j-1)*Uold(i,j-1+grad_m:j-1+grad_p)) &
 									 +cnt_divy(1,i,j)*&
-									 sum(cnt_grady(:,i,j)*U(i,j+grad_m:j+grad_p)))&
-									 +U(i,j)
+									 sum(cnt_grady(:,i,j)*Uold(i,j+grad_m:j+grad_p)))&
+									 +Uold(i,j)
 			end if
 		end do
 	end do
@@ -279,7 +280,7 @@ subroutine velocity_solver_conv_v
 	! to n+1/2. U(imin,:) is on the boundary and will be set with a BC
 	do j = jmin+1,jmax
 		do i = imin,imax
-			V(i,j) = Vold(i,j)+dt*(&
+			V(i,j) = V(i,j)+dt*(&
 												 sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
 												 sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
 																																	 )
@@ -321,7 +322,7 @@ subroutine velocity_solver_visc_v_explicit
 	! with a BC
 	do j = jmin+1,jmax
 		do i = imin,imax
-			V(i,j) = V(i,j)+dt*(&
+			V(i,j) = Vold(i,j)+dt*(&
 							  	sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
 					 			  sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
 																														)
@@ -369,32 +370,32 @@ subroutine velocity_solver_visc_v_implicit
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= V(i,j)
+				RHS(ind)= Vold(i,j)
 			else if(i.eq.imax+1) then ! Dirichlet BC
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= V(i,j)
+				RHS(ind)= Vold(i,j)
 			else if(j.eq.jmin) then ! Dirichlet BC
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= V(i,j)
+				RHS(ind)= Vold(i,j)
 			else if(j.eq.jmax+1) then ! Dirichlet BC
 				ld(ind) = 0.0_DP
 				md(ind) = 1.0_DP
 				ud(ind) = 0.0_DP
-				RHS(ind)= V(i,j)
+				RHS(ind)= Vold(i,j)
 			else
 				ld(ind) = -coeff*cnt_divx(0,i,j)*cnt_gradx(0,i-1,j)
 				md(ind) =  1.0_DP-coeff*(cnt_divx(0,i,j)*&
 									 cnt_gradx(1,i-1,j)+cnt_divx(1,i,j)*cnt_gradx(0,i,j))
 				ud(ind) = -coeff*cnt_divx(1,i,j)*cnt_gradx(1,i,j)
 				RHS(ind)=  coeff*(cnt_divy(0,i,j)*&
-									 sum(cnt_grady(:,i,j-1)*V(i,j-1+grad_m:j-1+grad_p)) &
+									 sum(cnt_grady(:,i,j-1)*Vold(i,j-1+grad_m:j-1+grad_p)) &
 									 +cnt_divy(1,i,j)*&
-									 sum(cnt_grady(:,i,j)*V(i,j+grad_m:j+grad_p)))&
-									 +V(i,j)
+									 sum(cnt_grady(:,i,j)*Vold(i,j+grad_m:j+grad_p)))&
+									 +Vold(i,j)
 			end if
 		end do
 	end do
