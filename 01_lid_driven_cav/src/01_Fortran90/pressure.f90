@@ -69,6 +69,8 @@ subroutine pressure_solve
 		! If the Linf(lap(P)<ptol), we've converged
 		if(Linf_err .lt. ptol) exit
 	end do
+  ! Print to screen if max iterations reached
+	if(piter.eq.piter_max+1) print*,'max iterations reached'
 	! Store final Linf_err to export to screen
 	Linf_fin = Linf_err
 	L2_fin = L2_err
