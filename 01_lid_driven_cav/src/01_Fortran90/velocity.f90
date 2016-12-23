@@ -1,14 +1,25 @@
+! ================================================ !
+! These routines update the velocities.
+! The velocity is updated from Uold to U^*
+! with the convective and viscous terms. After
+! the pressure is solved for, the velocity is also
+! then accelerated by the pressure gradient.
+! ================================================ !
+
 module velocity
 ! Dummy module
 end module velocity
 
+! Initialize velocity variables
 subroutine velocity_init
 
-! No purpose as of now
+! Nothing to initialize as of now
 
 	return
 end subroutine velocity_init
 
+! Update velocity from U^n to U^*
+! with the convective and viscous terms
 subroutine velocity_solve
 	use data
 	implicit none
@@ -26,6 +37,7 @@ subroutine velocity_solve
 	return
 end subroutine velocity_solve
 
+! Update U velocity with convective term
 subroutine velocity_solver_conv_u
 	use data
 	use operators
@@ -53,7 +65,7 @@ subroutine velocity_solver_conv_u
 	end do
 	
 	! Take divergence with Fx and Fy for each cell, update U from n&
-	! to n+1/2. U(imin,:) is on the boundary and will be set with a BC
+	! to n^*. U(imin,:) is on the boundary and is set to no-slip BC
 	do j = jmin,jmax
 		do i = imin+1,imax
 			U(i,j) = Uold(i,j)+dt*(&
@@ -66,6 +78,7 @@ subroutine velocity_solver_conv_u
 	return
 end subroutine velocity_solver_conv_u
 
+! Update U velocity with viscous term
 subroutine velocity_solver_visc_u
 	use data
 	use parameters
@@ -94,8 +107,8 @@ subroutine velocity_solver_visc_u
 	Fy = mu/rho*Fy
 		
 	! Take divergence with Fx and Fy for each cell, update U to include
-	! the viscous part. U(imin,:) is on the boundary, and will be set 
-	! with a BC
+	! the viscous part. U(imin,:) is on the boundary, and is set to 
+  ! a no-slip BC
 	do j = jmin,jmax
 		do i = imin+1,imax
 			U(i,j) = U(i,j)+dt*(&
@@ -108,6 +121,7 @@ subroutine velocity_solver_visc_u
 	return
 end subroutine velocity_solver_visc_u
 
+! Update V velocity with convective term
 subroutine velocity_solver_conv_v
 	use data
 	use operators
@@ -135,7 +149,7 @@ subroutine velocity_solver_conv_v
 	end do
 	
 	! Take divergence with Fx and Fy for each cell, update U from n&
-	! to n+1/2. U(imin,:) is on the boundary and will be set with a BC
+	! to n^*. V(:,jmin) is on the boundary and is set to no-slip BC
 	do j = jmin+1,jmax
 		do i = imin,imax
 			V(i,j) = Vold(i,j)+dt*(&
@@ -148,6 +162,7 @@ subroutine velocity_solver_conv_v
 	return
 end subroutine velocity_solver_conv_v
 
+! Update V velocity with viscous term
 subroutine velocity_solver_visc_v
 	use data
 	use parameters
@@ -176,8 +191,8 @@ subroutine velocity_solver_visc_v
 	Fy = mu/rho*Fy
 	
 	! Take divergence with Fx and Fy for each cell, update U to include
-	! the viscous part. U(imin,:) is on the boundary, and will be set 
-	! with a BC
+	! the viscous part. V(:,jmin) is on the boundary, and is set with
+	! no-slip BC
 	do j = jmin+1,jmax
 		do i = imin,imax
 			V(i,j) = V(i,j)+dt*(&

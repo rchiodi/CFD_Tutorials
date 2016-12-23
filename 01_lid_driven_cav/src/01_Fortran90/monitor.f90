@@ -1,3 +1,11 @@
+! ================================================= !
+! These subroutines print the important information
+! to the screen while the simulation is running.
+! Allows user to monitor the maximum velocity,
+! convective and viscous CFLs, and the convergence
+! of the pressure solver
+! ================================================= !
+
 module monitor
 
 ! Dummy module
@@ -8,11 +16,13 @@ subroutine monitor_init
 	implicit none
 	
 	! Nothing done in this for now
-	
-	
+
 	return
 end subroutine monitor_init
 
+! This subroutine writes out the CFLs, Velocity,
+! and pressure convergence criteria to the screen
+! to monitor
 subroutine monitor_write
 	use data
 	use time_info

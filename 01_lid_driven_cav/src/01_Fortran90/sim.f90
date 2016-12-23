@@ -1,17 +1,22 @@
-!> This is to solve the lid driven cavity case.
-!! We are going to make a lot of assumptions and write a pretty
-!! innacurate code, but it should be simpler to follow and still
-!! produce reasonable results.
-!! In the future, improvements will be made in accuracy, speed, and
-!! capability.
+! ================================================================ !
+! This is to solve the lid driven cavity case.
+! We are going to make a lot of assumptions and write a pretty
+! innacurate code, but it should be simpler to follow and still
+! produce reasonable results.
+! In the future, improvements will be made in accuracy, speed,
+! and capability.
+!
+! These subroutines initialize and run the flow solver.
+! ================================================================ !
 
+! Double (DP) and Single precision parameters
 module precision
-!> Double (DP) and Single precision parameters
 integer, parameter :: DP = kind(1.d0)
 integer, parameter :: SP = kind(1.0)
 
 end module precision
 
+! Time and dump frequency related variables
 module time_info
 	use precision
 	integer :: titer
@@ -19,6 +24,8 @@ module time_info
 
 end module time_info
 
+! Parameters for the initialization and configuration
+! of the lid driven cavity problem.
 module parameters
 	use precision
 	real(DP) :: dw, dh, Ulid, rho, mu, init_CFL
@@ -27,6 +34,7 @@ module parameters
 
 end module parameters
 
+! Geometry of the mesh configuration
 module geometry
 	use precision
 	real(DP), dimension(:), allocatable :: x, y, xm, ym
@@ -34,17 +42,19 @@ module geometry
 
 end module geometry
 
+! Index extents for the mesh
+! ending with g means ghost cells are included
 module indices
-
 	integer :: iming,imaxg,jming,jmaxg
 	integer :: imin, imax, jmin, jmax
 
 end module indices
 
+! Operators used to take derivatives and interpolate on the grid
 module operators
 	use precision
 	! Derivatives for divergence of cell
-  real(DP), dimension(:,:,:), allocatable :: cnt_divx, cnt_divy
+   real(DP), dimension(:,:,:), allocatable :: cnt_divx, cnt_divy
 	integer :: div_m, div_p
 	
 	! Derivatives for gradient of U or V cell
@@ -64,6 +74,7 @@ module operators
 
 end module operators
 
+! Main data stored on the mesh, Velocity and Pressure
 module data
 	use precision
 	real(DP), dimension(:,:), allocatable :: U, V, P
@@ -71,6 +82,7 @@ module data
 
 end module data
 
+! Scratch memory to be used for intermediate calculations
 module scratch
 	use precision
 	real(DP), dimension(:,:), allocatable :: Fx, Fy
@@ -78,8 +90,8 @@ module scratch
 
 end module scratch
 
-!> This just calls configuration, sets the initial data
-!! and then starts the flow solver
+! This just creates the grid, sets the initial data
+! and then starts the flow solver
 program main
 
 	call parameters_set
@@ -91,10 +103,10 @@ program main
 	return
 end program main
 
-!> Parameters specified by user
-!! Normally, this would be set through an input file or a GUI,
-!! but for simplicity to start, these will be hardcoded here in this
-!! function.
+! Parameters specified by user
+! Normally, this would be set through an input file or a GUI,
+! but for simplicity to start, these will be hardcoded here in this
+! function.
 subroutine parameters_set
 	use parameters
 	use geometry
@@ -130,8 +142,8 @@ subroutine parameters_set
 	return
 end subroutine parameters_set
 	
-!> Sets up the configuration of the grid (x,y locations).
-!! Rectangular grid is assumed, with a staggered cell arrangement
+! Sets up the configuration of the grid (x,y locations).
+! Rectangular grid is assumed, with a staggered cell arrangement
 subroutine grid_make
 	use parameters
 	use geometry
@@ -185,10 +197,10 @@ subroutine grid_make
 	return
 end subroutine grid_make
 
-!> Creates the operators based on the mesh.
-!! Operator is created for each cell, which will allow
-!! imposing some boundary conditions through the operators themselves.
-!! This is especially helpful for Neumann BCs (e.g. for pressure)
+! Creates the operators based on the mesh.
+! Operator is created for each cell, which will allow
+! imposing some boundary conditions through the operators themselves.
+! This is especially helpful for Neumann BCs (e.g. for pressure)
 subroutine operator_gen
 	use geometry
 	use operators
@@ -273,7 +285,7 @@ subroutine operator_gen
 	return
 end subroutine operator_gen
 
-!> Initialize the data that will be used in the simulation
+! Initialize the data that will be used in the simulation
 subroutine data_init
 	use data
 	use parameters
@@ -300,7 +312,7 @@ subroutine data_init
 	
 	! Since this is lid driven cavity, initialize all to zero
 	! except for the lid velocity.
-	! Will use convention that cell (1,1) is in the bottom left.
+	! Will use convention that cell (imin,jmin) is in the bottom left.
 	U = 0.0_DP
 	V = 0.0_DP
 	Uold = 0.0_DP
@@ -312,7 +324,7 @@ subroutine data_init
 	return
 end subroutine data_init
 
-!> Advance the simulation through time
+! Advance the simulation through time
 subroutine flow_solve
 	use parameters
 	use time_info
@@ -341,9 +353,9 @@ subroutine flow_solve
 	do while(time.lt.tfin)
 		! Update iteration counter
 		titer = titer + 1
-	  ! Advance U from n to n+1/2
+	  ! Advance U from n to n^*
 		call velocity_solve
-		! Solve for pressure to cause solenoidal velocity field
+		! Solve for pressure to create solenoidal velocity field
 		call pressure_solve
 		! Correct velocity to the solenoidal field
 		call velocity_correct

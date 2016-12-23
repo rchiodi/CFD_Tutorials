@@ -1,3 +1,12 @@
+! ================================================= !
+! These routines handle the dumping of the data
+! for visualization. Since the velocity is
+! interpolated to the cell centers, this cannot
+! be used for restart. These current simulations
+! are cheap enough that restarting should not
+! be needed, so this will be added later.
+! ================================================= !
+
 module dump
 	use precision
 
@@ -10,6 +19,9 @@ module dump
 
 end module dump
 
+! Initialize variables needed to dump data.
+! Includes coefficients for midplane velocity
+! interpolation.
 subroutine dump_init
 	use dump
 	use indices
@@ -18,7 +30,7 @@ subroutine dump_init
 	
 	integer :: i
 
-	! Create the file that will hold the individual file names
+	! Create the file that will hold the individual data file names
 	filelist=10
 	open(unit=filelist,file="dlist.txt",status="REPLACE")
 	close(filelist)
@@ -36,6 +48,9 @@ subroutine dump_init
 	return
 end subroutine dump_init
 
+! Routine to add data name to dlist.txt,
+! Write the data file with formatting to allow
+! use of pm3d in gnuplot, and the midplane velocity
 subroutine dump_data
 	use data
 	use time_info
@@ -51,7 +66,7 @@ subroutine dump_data
 	integer :: i,j
 	
 	! Write the file name tagged with the time
-  write(buffer,'(ES12.3)') time
+   write(buffer,'(ES12.3)') time
 	fname = trim(fstart)//'_'//trim(adjustl(buffer))
 	
 	! Write this file name into a list of data files
