@@ -1,12 +1,22 @@
+! ==================================================================== !
+! The pressure required to accelerate the fluid to having
+! a solenoidal velocity field is found through solving Ax=b,
+! where A is the operator matrix representing the discrete gradient
+! operator, and b is the divergence of the original velocity field at
+! time n^*. In reality, we will not form the matrices in order to
+! reduce the memory use. For now, the Gauss-Seidel method will be used
+! to solve the system.
+! ==================================================================== !
+
 module pressure
 	use precision
 
 	real(DP), dimension(:,:), allocatable :: RHS
-	real(DP), dimension(:,:), pointer :: Pold
 	real(DP) :: Linf_fin, L2_fin
 
 end module pressure
 
+! Initialize variables needed for the pressure solver
 subroutine pressure_init
 	use pressure
 	use indices
@@ -15,20 +25,12 @@ subroutine pressure_init
 
 	! Allocate the RHS for the pressure solution
 	allocate(RHS(imin:imax,jmin:jmax))
-	
-	! Set up pointer of Pold to tmp1 for clarity
-	Pold => tmp1
 
 	return
 end subroutine pressure_init
 
-!> The pressure required to accelerate the fluid to having
-!! a solenoidal velocity field is found through solving Ax=b,
-!! where A is the operator matrix representing the discrete gradient
-!! operator, and b is the divergence of the original velocity field at
-!! time n+1/2. In reality, we will not form the matrices in order to 
-!! reduce the memory use. For now, Jacobi iteration will be used
-!! to solve the system.
+! Solve pressure Poisson equation to get pressure
+! that leads to solenoidal velocity field
 subroutine pressure_solve
 	use data
 	use operators
@@ -44,7 +46,7 @@ subroutine pressure_solve
 	! Calculate the RHS (1/dt* div(\vec{U}))
 	call pressure_RHS
 	
-	! Solve Ax = b with GS
+	! Solve Ax = b with Gauss-Seidel
 	Linf_err = huge(1.0_DP)
 	L2_err = huge(1.0_DP)
 	call pressure_solve_divfree_check(Linf_init, L2_init)
@@ -54,9 +56,9 @@ subroutine pressure_solve
 		return
 	end if
 
+  ! Perform pressure iterations
 	do piter = 1, piter_max
-		!Pold = P
-		!call pressure_solve_jacobi
+
 		call pressure_solve_gauss_seidel
 		! Only calculate the error every check_interval iterations
 		if(mod(piter,check_interval) .eq. 0) then
@@ -66,6 +68,7 @@ subroutine pressure_solve
 		! If the Linf(lap(P)<ptol), we've converged
 		if(Linf_err .lt. ptol) exit
 	end do
+  ! Print to screen if max iterations reached
 	if(piter.eq.piter_max+1) print*,'max iterations reached'
 	! Store final Linf_err to export to screen
 	Linf_fin = Linf_err
@@ -75,6 +78,9 @@ subroutine pressure_solve
 	return
 end subroutine pressure_solve
 
+! Calculate the right hand side of the pressure Poisson equation
+! This is what we'll want to force to zero to satisfy the divergence
+! free condition
 subroutine pressure_RHS
 	use pressure
 	use operators
@@ -87,12 +93,10 @@ subroutine pressure_RHS
 	real(DP) :: idt
 	
 	idt = 1.0_DP/dt
-	
-	! Calculate the right hand side of the pressure Poisson equation
-	! This is what we'll want to force to zero to satisfy the divergence
-	! free condition
+
 	do j = jmin, jmax
 		do i = imin, imax
+         ! 1/dt * div{ \vec{U} }
 			RHS(i,j) = idt*(sum(cnt_divx(:,i,j)*U(i+div_m:i+div_p,j))+ &
 									sum(cnt_divy(:,i,j)*V(i,j+div_m:j+div_p)) )
 		end do
@@ -101,30 +105,7 @@ subroutine pressure_RHS
 	return
 end subroutine pressure_RHS
 
-subroutine pressure_solve_jacobi
-	use data
-	use operators
-	use pressure
-	use indices
-	implicit none
-	
-	integer :: i,j, st
-	real(DP) :: Rx
-	
-	! Update P at each location
-	do j = jmin, jmax
-		do i = imin, imax
-			Rx = 0.0_DP
-			do st = lap_m,lap_p,2
-				Rx = Rx + lapx(st,i,j)*Pold(i+st,j)+lapy(st,i,j)*Pold(i,j+st)
-			end do
-			P(i,j) = (RHS(i,j)-Rx)/(lapx(0,i,j)+lapy(0,i,j))
-		end do
-	end do
-	
-	return
-end subroutine pressure_solve_jacobi
-
+! Update P at each location according to Gauss-Seidel method
 subroutine pressure_solve_gauss_seidel
 	use data
 	use operators
@@ -134,8 +115,7 @@ subroutine pressure_solve_gauss_seidel
 	
 	integer :: i,j, st
 	real(DP) :: Rx
-	
-	! Update P at each location
+
 	do j = jmin, jmax
 		do i = imin, imax
 			Rx = 0.0_DP
@@ -149,6 +129,8 @@ subroutine pressure_solve_gauss_seidel
 	return
 end subroutine pressure_solve_gauss_seidel
 
+! Calculate the L infinity and L2 norm of the residual
+! to check for adequate convergence
 subroutine pressure_solve_divfree_check(Linf_err, L2_err)
 	use pressure
 	use data

@@ -1,7 +1,16 @@
+! ================================================ !
+! These routines update the velocities.
+! The velocity is updated from Uold to U^*
+! with the convective and viscous terms. After
+! the pressure is solved for, the velocity is also
+! then accelerated by the pressure gradient.
+! ================================================ !
+
 module velocity
 ! Dummy module
 end module velocity
 
+! Initialize velocity variables
 subroutine velocity_init
 
 ! No purpose as of now
@@ -9,6 +18,8 @@ subroutine velocity_init
 	return
 end subroutine velocity_init
 
+! Update velocity from U^n to U^*
+! with the convective and viscous terms
 subroutine velocity_solve
 	use data
 	use indices
@@ -19,7 +30,6 @@ subroutine velocity_solve
 	Vold = V
 	
 	! Advance velocity in time
-
 	!call velocity_solver_visc_u_explicit
 	call velocity_solver_visc_u_implicit
 	call velocity_solver_conv_u
@@ -30,46 +40,7 @@ subroutine velocity_solve
 	return
 end subroutine velocity_solve
 
-subroutine velocity_solver_conv_u
-	use data
-	use operators
-	use scratch
-	use time_info
-	use indices
-	implicit none
-	
-	integer :: i,j
-	
-	! Calculating div(U \vec{U})
-	
-	! Loop and compute convective fluxes at left and bottom of U-cell
-	! Flux is U \vec{U}
-	Fx = 0.0_DP
-	Fy = 0.0_DP
-	do j = jmin,jmax+1
-		do i = imin, imax+1
-			Fx(i,j) = -sum(int_x_c(:,i,j)*Uold(i-1+intxc_m:i-1+intxc_p,j))*&
-								 sum(int_x_c(:,i,j)*Uold(i-1+intxc_m:i-1+intxc_p,j))
-								
-			Fy(i,j) = -sum(int_c_x(:,i,j)*Vold(i+intcx_m:i+intcx_p,j))*&
-								 sum(int_c_y(:,i,j)*Uold(i,j+intcy_m:j+intcy_p))
-		end do
-	end do
-	
-	! Take divergence with Fx and Fy for each cell, update U from n&
-	! to n+1/2. U(imin,:) is on the boundary and will be set with a BC
-	do j = jmin,jmax
-		do i = imin+1,imax
-			U(i,j) = U(i,j)+dt*(&
-												 sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
-												 sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
-																																	 )
-		end do
-	end do
-		
-	return
-end subroutine velocity_solver_conv_u
-
+! Update U velocity with viscous term explicitly
 subroutine velocity_solver_visc_u_explicit
 	use data
 	use parameters
@@ -98,8 +69,8 @@ subroutine velocity_solver_visc_u_explicit
 	Fy = mu/rho*Fy
 		
 	! Take divergence with Fx and Fy for each cell, update U to include
-	! the viscous part. U(imin,:) is on the boundary, and will be set 
-	! with a BC
+	! the viscous part. U(imin,:) is on the boundary, and is set to 
+  ! a no-slip BC
 	do j = jmin,jmax
 		do i = imin+1,imax
 			U(i,j) = Uold(i,j)+dt*(&
@@ -112,6 +83,7 @@ subroutine velocity_solver_visc_u_explicit
 	return
 end subroutine velocity_solver_visc_u_explicit
 
+! Update U velocity with viscous term implicitly
 subroutine velocity_solver_visc_u_implicit
 	use data
 	use parameters
@@ -132,7 +104,7 @@ subroutine velocity_solver_visc_u_implicit
 	
 	! Alternating Direction Implicit so that
 	! the A matrix is triadiagonal, instead of Pentadiagonal with
-	! a large band.
+	! a 3 bands.
 	
 	! First step, implicit in x, explicit in y
 	! Create diagonals of the A operator matrix and the RHS vector
@@ -250,7 +222,8 @@ subroutine velocity_solver_visc_u_implicit
 	return
 end subroutine velocity_solver_visc_u_implicit
 
-subroutine velocity_solver_conv_v
+! Update U velocity with convective term
+subroutine velocity_solver_conv_u
 	use data
 	use operators
 	use scratch
@@ -260,27 +233,27 @@ subroutine velocity_solver_conv_v
 	
 	integer :: i,j
 	
-	! Calculating div(V \vec{U})
+	! Calculating div(U \vec{U})
 	
-	! Loop and compute convective fluxes at left and bottom of V-cell
-	! Flux is V \vec{U}
+	! Loop and compute convective fluxes at left and bottom of U-cell
+	! Flux is U \vec{U}
 	Fx = 0.0_DP
 	Fy = 0.0_DP
 	do j = jmin,jmax+1
 		do i = imin, imax+1
-			Fx(i,j) = -sum(int_c_y(:,i,j)*Uold(i,j+intcy_m:j+intcy_p))*&
-								 sum(int_c_x(:,i,j)*Vold(i+intcx_m:i+intcx_p,j))
+			Fx(i,j) = -sum(int_x_c(:,i,j)*Uold(i-1+intxc_m:i-1+intxc_p,j))*&
+								 sum(int_x_c(:,i,j)*Uold(i-1+intxc_m:i-1+intxc_p,j))
 								
-			Fy(i,j) = -sum(int_y_c(:,i,j-1)*Vold(i,j-1+intyc_m:j-1+intyc_p))*&
-								 sum(int_y_c(:,i,j-1)*Vold(i,j-1+intyc_m:j-1+intyc_p))
+			Fy(i,j) = -sum(int_c_x(:,i,j)*Vold(i+intcx_m:i+intcx_p,j))*&
+								 sum(int_c_y(:,i,j)*Uold(i,j+intcy_m:j+intcy_p))
 		end do
 	end do
 	
 	! Take divergence with Fx and Fy for each cell, update U from n&
-	! to n+1/2. U(imin,:) is on the boundary and will be set with a BC
-	do j = jmin+1,jmax
-		do i = imin,imax
-			V(i,j) = V(i,j)+dt*(&
+	! to n^*. U(imin,:) is on the boundary and is set with no-slip BC
+	do j = jmin,jmax
+		do i = imin+1,imax
+			U(i,j) = U(i,j)+dt*(&
 												 sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
 												 sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
 																																	 )
@@ -288,8 +261,9 @@ subroutine velocity_solver_conv_v
 	end do
 		
 	return
-end subroutine velocity_solver_conv_v
+end subroutine velocity_solver_conv_u
 
+! Update V velocity with viscous term explicitly
 subroutine velocity_solver_visc_v_explicit
 	use data
 	use parameters
@@ -318,8 +292,8 @@ subroutine velocity_solver_visc_v_explicit
 	Fy = mu/rho*Fy
 	
 	! Take divergence with Fx and Fy for each cell, update U to include
-	! the viscous part. U(imin,:) is on the boundary, and will be set 
-	! with a BC
+	! the viscous part. V(:,jmin) is on the boundary, and is set to
+	! no-slip BC
 	do j = jmin+1,jmax
 		do i = imin,imax
 			V(i,j) = Vold(i,j)+dt*(&
@@ -332,6 +306,7 @@ subroutine velocity_solver_visc_v_explicit
 	return
 end subroutine velocity_solver_visc_v_explicit
 
+! Update V velocity with viscous term implicitly
 subroutine velocity_solver_visc_v_implicit
 	use data
 	use parameters
@@ -472,6 +447,47 @@ subroutine velocity_solver_visc_v_implicit
 	
 	return
 end subroutine velocity_solver_visc_v_implicit
+
+! Update V velocity with convective term
+subroutine velocity_solver_conv_v
+	use data
+	use operators
+	use scratch
+	use time_info
+	use indices
+	implicit none
+	
+	integer :: i,j
+	
+	! Calculating div(V \vec{U})
+	
+	! Loop and compute convective fluxes at left and bottom of V-cell
+	! Flux is V \vec{U}
+	Fx = 0.0_DP
+	Fy = 0.0_DP
+	do j = jmin,jmax+1
+		do i = imin, imax+1
+			Fx(i,j) = -sum(int_c_y(:,i,j)*Uold(i,j+intcy_m:j+intcy_p))*&
+								 sum(int_c_x(:,i,j)*Vold(i+intcx_m:i+intcx_p,j))
+								
+			Fy(i,j) = -sum(int_y_c(:,i,j-1)*Vold(i,j-1+intyc_m:j-1+intyc_p))*&
+								 sum(int_y_c(:,i,j-1)*Vold(i,j-1+intyc_m:j-1+intyc_p))
+		end do
+	end do
+	
+	! Take divergence with Fx and Fy for each cell, update U from n&
+	! to n^*. V(:,jmin) is on the boundary and is set to no-slip BC
+	do j = jmin+1,jmax
+		do i = imin,imax
+			V(i,j) = V(i,j)+dt*(&
+												 sum(cnt_divx(:,i,j)*Fx(i+div_m:i+div_p,j))+&
+												 sum(cnt_divy(:,i,j)*Fy(i,j+div_m:j+div_p)) &
+																																	 )
+		end do
+	end do
+		
+	return
+end subroutine velocity_solver_conv_v
 
 ! Update velocity to solenoidal velocity field,
 ! from time n^* to n+1
