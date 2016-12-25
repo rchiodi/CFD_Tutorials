@@ -137,6 +137,7 @@ subroutine pressure_solve_divfree_check(Linf_err, L2_err)
 	use data
 	use operators
 	use indices
+  use parameters
 	implicit none
 	
 	real(DP), intent(out) :: Linf_err, L2_err
@@ -154,7 +155,7 @@ subroutine pressure_solve_divfree_check(Linf_err, L2_err)
 			L2_err = L2_err + res*res
 		end do
 	end do
-	L2_err = sqrt(L2_err)
+	L2_err = sqrt(L2_err)/(nx*ny)
 
 	return
 end subroutine pressure_solve_divfree_check
