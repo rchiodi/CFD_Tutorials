@@ -278,7 +278,7 @@ subroutine operator_gen
 	! Interpolation from cell center to Y-face (First order)
 	intcy_m = -1
 	intcy_p =  0
-	allocate(int_c_y(intcy_m:intcy_p,imaxg-intcy_m:imaxg-intcy_p, &
+	allocate(int_c_y(intcy_m:intcy_p,iming-intcy_m:imaxg-intcy_p, &
 																	 jming-intcy_m:jmaxg-intcy_p))
 	int_c_y(-1,:,:) = 0.5_DP
 	int_c_y( 0,:,:) = 0.5_DP
